@@ -132,7 +132,7 @@ const arr = x => Array.isArray(x) ? x : Object.values(x || {});
 const RM = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const STAR = '<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path fill="#e3c57d" d="M10 0C10.8 6 14 9.2 20 10C14 10.8 10.8 14 10 20C9.2 14 6 10.8 0 10C6 9.2 9.2 6 10 0Z"/></svg>';
 const head = (t, mini) => `<header class="hd${mini ? " mini" : ""}">${LOGO ? `<img class="logo" src="${LOGO}" alt="EU-ALign">` : ""}<div class="orn"><i></i>${STAR}<i></i></div>${mini ? "" : `<h1>${t}</h1>`}</header>`;
-const st = {qs:[], guests:[], open:true, podium:false, players:{}, gl:false, pl:false, err:null};
+const st = {qs:[], guests:[], open:true, podium:false, players:{}, gl:false, pl:false, err:null, full:false};
 const ranked = () => Object.entries(st.players).map(([id,p]) => ({id,...p})).sort((a,b) => (b.score||0)-(a.score||0) || (a.t||9e15)-(b.t||9e15));
 const tot = p => Math.max(st.qs.length - (p.own >= 0 ? 1 : 0), 0);
 const finished = rk => st.qs.length ? rk.filter(p => (p.n||0) >= tot(p)).length : 0;
@@ -170,12 +170,20 @@ const floatText = (t, x, y) => { const d = document.createElement("div"); d.clas
 const buzz = p => { try { navigator.vibrate && navigator.vibrate(p); } catch (e) {} };
 const flash = () => { const f = $("flash"); f.classList.remove("on"); void f.offsetWidth; f.classList.add("on"); };
 
+/* connection limit: Firebase only reports it as a console warning */
+const consoleWarn = console.warn;
+let fullT = null;
+console.warn = (...a) => { consoleWarn(...a); if (!st.full && a.join(" ").includes("peak connections")) { st.full = true; for (const k in qStart) delete qStart[k]; fullT = setTimeout(() => location.reload(), 60000); render(); } };   // the speed bonus restarts, so waiting costs no points; the page tries again every minute
+onValue(ref(db,".info/connected"), s => { if (s.val() && st.full) { st.full = false; clearTimeout(fullT); render(); } });
+
 const fail = e => { st.err = e; render(); };
 onValue(ref(db,"game"), s => { const g = s.val() || {}; st.qs = arr(g.questions); st.guests = arr(g.guests); st.open = g.open !== false; st.podium = !!g.podium; st.gl = true; render(); }, fail);
 onValue(ref(db,"players"), s => { st.players = s.val() || {}; st.pl = true; render(); }, fail);
 
 function paint(key, html){ if (key && app.dataset.k === key) return false; app.dataset.k = key; app.innerHTML = html; return true; }
 function render(){
+  if (st.full && view === "play") return paint("full", head("Who said it?") + `<div class="card"><p><b>A lot of people are playing right now!</b></p><p>Please come back in 30 minutes.</p><p class="mut">Don't worry: waiting will have no impact on your score.</p></div>`);
+  if (st.full) return paint("full", head("Connection limit reached") + `<div class="card">Firebase's limit of simultaneous connections is reached, so this screen can't connect right now.</div>`);
   if (st.err) return paint("err", head("Connection problem") + `<div class="card">The game can't reach its database (${esc(st.err.code || st.err.message)}). Check the Firebase rules and the settings at the top of index.html.</div>`);
   ({play, board, host}[view] || play)();
 }

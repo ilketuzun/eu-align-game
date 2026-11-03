@@ -8,6 +8,7 @@ The owner is not a developer. Explain things in plain language, one step at a ti
 - One file, `docs/index.html` (HTML, CSS and JavaScript, Firebase loaded from a CDN). No build step.
 - Three views, chosen by the address: `/` players, `/?v=board` projector scoreboard (QR code in the corner), `/?v=host` host panel (PIN in `HOST_PIN`; the repo is public, so never write the PIN in docs).
 - Free play: each player answers at their own pace, in their own shuffled order, and never gets their own fun fact. 100 points per right answer, up to 50 more for speed (fades over 15 s), plus a streak bonus (+25 from 3 in a row, +50 from 5, +100 from 10). Ranking is live; the host can show a winners podium (it also closes the game).
+- If Firebase refuses a connection because the plan's limit is reached, players see a "come back in 30 minutes" message and the page tries again every minute. Their score and progress are kept.
 - Host panel: paste the Google Sheet (Name, Surname, Coming, Fun Fact; only "Coming" guests count), build the questions, close/reopen, show the winners, erase players.
 - Look: taken from the event poster (near-black, gold glitter, Playfair Display + Montserrat). Colours are tokens at the top of the CSS. The logo is embedded in `LOGO`.
 
