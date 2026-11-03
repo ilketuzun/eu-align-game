@@ -119,6 +119,7 @@ const LOGO = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAMCAgMCAgM
 const POINTS = 100;   // points for a correct answer
 const SPEED_MAX = 50; // extra points for an instant answer, fading to 0
 const TIME = 15;      // seconds for the speed bonus to fade to 0
+const MAX_QUESTIONS = 20; // questions per player, picked at random from the whole list
 const streakBonus = s => s >= 10 ? 100 : s >= 5 ? 50 : s >= 3 ? 25 : 0; // extra points per correct answer while on a streak
 /* =================== */
 
@@ -134,7 +135,7 @@ const STAR = '<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"
 const head = (t, mini) => `<header class="hd${mini ? " mini" : ""}">${LOGO ? `<img class="logo" src="${LOGO}" alt="EU-ALign">` : ""}<div class="orn"><i></i>${STAR}<i></i></div>${mini ? "" : `<h1>${t}</h1>`}</header>`;
 const st = {qs:[], guests:[], open:true, podium:false, players:{}, gl:false, pl:false, err:null, full:false};
 const ranked = () => Object.entries(st.players).map(([id,p]) => ({id,...p})).sort((a,b) => (b.score||0)-(a.score||0) || (a.t||9e15)-(b.t||9e15));
-const tot = p => Math.max(st.qs.length - (p.own >= 0 ? 1 : 0), 0);
+const tot = p => Math.min(Math.max(st.qs.length - (p.own >= 0 ? 1 : 0), 0), MAX_QUESTIONS);
 const finished = rk => st.qs.length ? rk.filter(p => (p.n||0) >= tot(p)).length : 0;
 let me = null, myName = null, fb = null;
 const qStart = {};
@@ -197,7 +198,7 @@ function orderFor(id, own, n){
   if (cache.k === k) return cache.v;
   const r = mulberry32(xmur3(id)()), a = [...Array(n).keys()].filter(i => i !== own);
   for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
-  cache.k = k; cache.v = a; return a;
+  cache.k = k; return cache.v = a.slice(0, MAX_QUESTIONS);
 }
 
 /* ---------- PLAYER ---------- */

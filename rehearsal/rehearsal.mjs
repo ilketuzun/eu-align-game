@@ -4,7 +4,7 @@
 //   node rehearsal.mjs --rules         rules checks only (a few seconds)
 //   node rehearsal.mjs --load          load test only
 //   node rehearsal.mjs --players=50    number of simulated players (default 100)
-//   node rehearsal.mjs --questions=10  answers per player (default: all questions)
+//   node rehearsal.mjs --questions=10  answers per player (default: all questions, up to MAX_QUESTIONS)
 //   node rehearsal.mjs --pace=0.3      answer faster than a human (1 = realistic, 2 to 6 seconds each)
 //   node rehearsal.mjs --seed          create demo questions if you haven't built the real ones yet
 //   node rehearsal.mjs --keep          don't erase the simulated players at the end
@@ -26,7 +26,7 @@ const SEED = !!args.seed, KEEP = !!args.keep, RULES_ONLY = !!args.rules, LOAD_ON
 const html = fs.readFileSync(new URL("../docs/index.html", import.meta.url), "utf8");
 const CFG = new Function("return " + html.match(/const CFG = (\{[^}]*\});/)[1])();
 const num = (name, d) => { const m = html.match(new RegExp("const " + name + " = (\\d+)")); return m ? +m[1] : d; };
-const POINTS = num("POINTS", 100), SPEED_MAX = num("SPEED_MAX", 50), TIME = num("TIME", 15);
+const POINTS = num("POINTS", 100), SPEED_MAX = num("SPEED_MAX", 50), TIME = num("TIME", 15), MAX_QUESTIONS = num("MAX_QUESTIONS", 20);
 const streakBonus = s => s >= 10 ? 100 : s >= 5 ? 50 : s >= 3 ? 25 : 0;
 const EMU = process.env.FIREBASE_DATABASE_EMULATOR_HOST; // set automatically by "firebase emulators:exec"
 
@@ -95,14 +95,14 @@ async function rulesChecks() {
 }
 
 async function loadTest() {
-  console.log(`\n== Load test: ${N} players, each on its own connection, answering ${args.questions ?? "all"} questions ==`);
+  const limit = Math.min(qs.length, MAX_QUESTIONS, +(args.questions ?? qs.length));
+  console.log(`\n== Load test: ${N} players, each on its own connection, answering ${limit} questions ==`);
   const board = open("board"), pend = new Map(), lag = [], lat = [], errors = {};
   let events = 0, joined = 0, done = 0, writes = 0, mismatch = 0;
   onValue(ref(board, "players"), snap => {
     events++; const now = performance.now();
     for (const [id, p] of Object.entries(snap.val() || {})) { const q = pend.get(id); while (q && q.length && q[0].n <= p.n) lag.push(now - q.shift().t0); }
   });
-  const limit = Math.min(qs.length, +(args.questions ?? qs.length));
   const bump = (k) => { errors[k] = (errors[k] || 0) + 1; };
 
   async function sim(i) {
