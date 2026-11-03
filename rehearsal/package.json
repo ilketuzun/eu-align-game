@@ -1,0 +1,14 @@
+{
+  "name": "eu-align-rehearsal",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Rules checks and a 100-player load test for the EU-ALign game",
+  "scripts": {
+    "rules": "node rehearsal.mjs --rules",
+    "test": "node rehearsal.mjs"
+  },
+  "dependencies": {
+    "firebase": "^13.2.0"
+  }
+}
